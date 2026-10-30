@@ -1,0 +1,20 @@
+{
+  "files": {
+    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "assets/art-fastapi.svg": "3ea9e4b5508900af46fcad9aee4eab6f459979a43d2b13f350958d2d47b3dd8c",
+    "assets/art-infra.svg": "442ca8c22fd96efc861c27d568c206f13b551d9c6faafb5d4d17b6be65558863",
+    "assets/art-k8s.svg": "d9945f8cacad78718aaa4e6eb111e5520173c603beacfc570febde0b782b5192",
+    "assets/favicon.svg": "a95cd7eef6504280319f257e50bbf42849e126d094231b16b4b3c15f0ade8352",
+    "assets/orbital.svg": "128f276306e2d32b1d9ae54a52ff2bc9c4116a2313a61677f270d3fba2ca66d7",
+    "index.html": "24283b8c88e3dbb4c91b0320ead10410cfa72156536e5284530131be38e3c9fd",
+    "llms.txt": "5247b3b42a1773845c6ff24c4425455bf00b6cd18d828dfca950644005ef1517",
+    "robots.txt": "711cd7aa9b659472622e4265097c05219e57ca272722279d89ff125e082c4793",
+    "sitemap.xml": "8f67941ae7102c473ad10200078f56b0fcbebd3b6dec0611ad2050c4a898b1c6",
+    "structured-data.json": "90bf95ef09658bdb4a6b0096c99e30e34fb0d072e61135fa48c4f26c8c01b4d1",
+    "styles.css": "08cc58509e9e933ab4feb5aebda6c1d9077e4ae6d596736644b023103c33c57b"
+  },
+  "generator_sha256": "e8fe63a4b7f03531ff5fcea9e22b3a9df85a3f3390eed22a0bd9bf2a59d278b8",
+  "manifest_sha256": "b80cee316ed016711ddd3b24756cbaadc1551d4c365575edd30a353b6e6a67a3",
+  "publication_state": "RELEASE_APPROVED",
+  "schema_version": "portfolio-export.v1"
+}

@@ -1,0 +1,50 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@id": "https://justgithubaccount.github.io/#author",
+      "@type": "Person",
+      "alternateName": "justgithubaccount",
+      "name": "Jenya",
+      "sameAs": [
+        "https://github.com/justgithubaccount"
+      ]
+    },
+    {
+      "@id": "https://justgithubaccount.github.io/",
+      "@type": "CollectionPage",
+      "author": {
+        "@id": "https://justgithubaccount.github.io/#author"
+      },
+      "description": "From a working application to a repeatable delivery path. Explore my public engineering lab across Python APIs, cloud infrastructure and GitOps.",
+      "hasPart": [
+        {
+          "@type": "SoftwareSourceCode",
+          "codeRepository": "https://github.com/justgithubaccount/app-poly-gitops-k8s",
+          "description": "Argo CD and Kustomize definitions connect applications, networking and observability. Separate development and smoke roots make the intended environments readable in Git.",
+          "name": "GitOps platform",
+          "url": "https://github.com/justgithubaccount/app-poly-gitops-k8s/blob/8f4f31226fd591ad027750fd65e66385db58cb55/README.md",
+          "version": "8f4f31226fd591ad027750fd65e66385db58cb55"
+        },
+        {
+          "@type": "SoftwareSourceCode",
+          "codeRepository": "https://github.com/justgithubaccount/app-poly-gitops-infra",
+          "description": "Terraform provisioning and Argo CD bootstrap describe the route from cloud resources to application delivery. Bounded smoke and cleanup workflows make the lifecycle explicit.",
+          "name": "Cloud infrastructure",
+          "url": "https://github.com/justgithubaccount/app-poly-gitops-infra/blob/cb7c88f84e9f796e4725fc0a218fe68e3785a72e/README.md",
+          "version": "cb7c88f84e9f796e4725fc0a218fe68e3785a72e"
+        },
+        {
+          "@type": "SoftwareSourceCode",
+          "codeRepository": "https://github.com/justgithubaccount/app-poly-gitops-fastapi",
+          "description": "A FastAPI service with project-scoped conversations, stored transcripts and OpenTelemetry instrumentation. Provider failures are handled separately from successful chat history.",
+          "name": "Python application",
+          "url": "https://github.com/justgithubaccount/app-poly-gitops-fastapi/blob/899ba6434745390c44c6965a0ebe48f3515a7170/README.md",
+          "version": "899ba6434745390c44c6965a0ebe48f3515a7170"
+        }
+      ],
+      "inLanguage": "en",
+      "name": "Software. Infrastructure. Connected."
+    }
+  ]
+}

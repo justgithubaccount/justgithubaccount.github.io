@@ -1,0 +1,11 @@
+# Jenya / justgithubaccount
+
+> From a working application to a repeatable delivery path. Explore my public engineering lab across Python APIs, cloud infrastructure and GitOps.
+
+Public code projects in an engineering lab. Repository snapshots describe code, not a live hosted service.
+
+## Public projects
+
+- [GitOps platform](https://github.com/justgithubaccount/app-poly-gitops-k8s/blob/8f4f31226fd591ad027750fd65e66385db58cb55/README.md): Argo CD and Kustomize definitions connect applications, networking and observability. Separate development and smoke roots make the intended environments readable in Git. Revision: 8f4f31226fd591ad027750fd65e66385db58cb55.
+- [Cloud infrastructure](https://github.com/justgithubaccount/app-poly-gitops-infra/blob/cb7c88f84e9f796e4725fc0a218fe68e3785a72e/README.md): Terraform provisioning and Argo CD bootstrap describe the route from cloud resources to application delivery. Bounded smoke and cleanup workflows make the lifecycle explicit. Revision: cb7c88f84e9f796e4725fc0a218fe68e3785a72e.
+- [Python application](https://github.com/justgithubaccount/app-poly-gitops-fastapi/blob/899ba6434745390c44c6965a0ebe48f3515a7170/README.md): A FastAPI service with project-scoped conversations, stored transcripts and OpenTelemetry instrumentation. Provider failures are handled separately from successful chat history. Revision: 899ba6434745390c44c6965a0ebe48f3515a7170.
