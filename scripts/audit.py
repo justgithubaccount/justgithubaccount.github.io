@@ -178,7 +178,9 @@ def audit_site(root):
     for svg in svgs:
         audit_svg(svg)
     css = (root / 'styles.css').read_text()
-    require(not re.search(r'@import|url\s*\(', css, re.I), 'External CSS resource')
+    # This generated sheet needs neither escapes nor image/font resources. Refuse
+    # them rather than trying to implement the browser's CSS tokenizer in regex.
+    require('\\' not in css and not re.search(r'@import|url\s*\(|image-set\s*\(|src\s*\(|https?:|//|data:', css, re.I), 'External or escaped CSS resource')
     require('@media' in css and 'prefers-reduced-motion' in css and ':focus-visible' in css, 'Missing responsive/accessibility styles')
     return {'result': 'PASS', 'files_hashed': len(files), 'html_refs': len(page.refs), 'svg_checked': len(svgs), 'publication_state': info['publication_state']}
 
