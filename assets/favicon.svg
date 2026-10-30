@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+<title id="title">Connected</title><desc id="desc">Two connected violet and cyan orbits.</desc>
+<defs>
+<linearGradient id="strand" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#69dbff"/><stop offset=".5" stop-color="#777bff"/><stop offset="1" stop-color="#d1a1ff"/></linearGradient>
+<radialGradient id="glow"><stop stop-color="#6555cc" stop-opacity=".28"/><stop offset="1" stop-color="#080c1c" stop-opacity="0"/></radialGradient>
+<linearGradient id="panel" x2="1" y2="1"><stop stop-color="#182541"/><stop offset="1" stop-color="#11142c"/></linearGradient>
+</defs>
+<rect width="64" height="64" rx="16" fill="#080c1c"/><ellipse cx="32" cy="32" rx="23" ry="11" transform="rotate(-45 32 32)" fill="none" stroke="url(#strand)" stroke-width="3"/><ellipse cx="32" cy="32" rx="23" ry="11" transform="rotate(45 32 32)" fill="none" stroke="url(#strand)" stroke-width="3"/>
+</svg>

@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /
+
+Sitemap: https://justgithubaccount.github.io/sitemap.xml
