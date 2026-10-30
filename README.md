@@ -18,6 +18,7 @@ python3 -m http.server 8765 --bind 127.0.0.1
 links, SVG/HTML safety, indexing state and accidental-disclosure patterns without
 credentials or a cross-repository token. It cannot prove operator approval.
 
-Status is DRAFT. The intended URL is `https://justgithubaccount.github.io/`;
-that is not evidence of live publication. Source/content/rights review, enabling
-Pages, merging and final live-URL verification remain separate operator steps.
+The current export is a `RELEASE_APPROVED` candidate in a Draft PR, following
+operator acceptance of the V1 content and design. This is **not** evidence of
+live publication, deployment or indexing. Merge, Pages settings and final
+publication require separate explicit authorization and live-URL verification.
