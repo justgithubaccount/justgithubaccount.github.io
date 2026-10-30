@@ -19,6 +19,9 @@ EVIDENCE = {
     'app-poly-gitops-fastapi': {'README.md', 'app/api.py', 'app/core/llm_client.py'},
 }
 VOID = {'meta', 'link', 'img', 'br', 'hr', 'input', 'source', 'wbr', 'area', 'base', 'col', 'embed', 'param', 'track'}
+HTML_TAGS = {'html', 'head', 'meta', 'title', 'link', 'script', 'body', 'a', 'header', 'span', 'nav', 'main', 'section', 'div', 'h1', 'h2', 'h3', 'p', 'ul', 'li', 'ol', 'article', 'img', 'details', 'summary', 'code', 'br', 'footer'}
+HTML_ATTRS = {'lang', 'charset', 'name', 'content', 'property', 'rel', 'href', 'type', 'class', 'id', 'src', 'alt', 'width', 'height', 'loading', 'fetchpriority', 'role', 'open'}
+EXPORT_FILES = {'index.html', 'styles.css', 'robots.txt', 'sitemap.xml', 'llms.txt', 'structured-data.json', '.nojekyll', 'assets/favicon.svg', 'assets/orbital.svg', 'assets/art-k8s.svg', 'assets/art-infra.svg', 'assets/art-fastapi.svg'}
 
 
 def require(ok, message):
@@ -48,9 +51,18 @@ class Page(HTMLParser):
         self.canonical, self.robots, self.lang, self.viewport = None, None, None, None
 
     def handle_starttag(self, tag, attrs):
+        require(len(attrs) == len(dict(attrs)), 'Duplicate HTML attribute')
         attrs = dict(attrs)
-        require(tag not in {'iframe', 'object', 'embed', 'base', 'form', 'video', 'audio'}, f'Unapproved HTML element: {tag}')
-        require(not any(k.startswith('on') or k in {'style', 'srcdoc'} for k in attrs), 'Executable HTML attribute')
+        require(tag in HTML_TAGS, f'Unapproved HTML element: {tag}')
+        require(all(k in HTML_ATTRS or k.startswith('aria-') for k in attrs), 'Unapproved HTML attribute')
+        if 'src' in attrs:
+            u = urlsplit(attrs['src'])
+            require(tag == 'img' and not u.scheme and not u.netloc, 'Only local image resources are allowed')
+        if tag == 'link':
+            require(attrs.get('rel') in ('canonical', 'stylesheet', 'icon'), 'Unapproved link resource')
+            if attrs.get('rel') != 'canonical':
+                u = urlsplit(attrs.get('href', ''))
+                require(not u.scheme and not u.netloc, 'Only local stylesheets and icons are allowed')
         if 'id' in attrs:
             require(attrs['id'] not in self.ids, 'Duplicate HTML id')
             self.ids.add(attrs['id'])
@@ -92,19 +104,23 @@ class Page(HTMLParser):
 def audit_svg(path):
     text = path.read_text(encoding='utf-8')
     require(len(text.encode()) < 100_000, f'SVG exceeds byte budget: {path.name}')
-    require('<!DOCTYPE' not in text and '<!ENTITY' not in text, 'SVG entity declaration')
+    require(not re.search(r'<\?|<!DOCTYPE|<!ENTITY', text, re.I), 'SVG processing instruction or entity declaration')
     root = ET.fromstring(text)
     require(root.tag == '{http://www.w3.org/2000/svg}svg' and 'viewBox' in root.attrib, 'Invalid SVG root')
     ns = {'s': 'http://www.w3.org/2000/svg'}
     require(root.find('s:title', ns) is not None and root.find('s:desc', ns) is not None, 'SVG missing title/description')
     ids = {node.attrib['id'] for node in root.iter() if 'id' in node.attrib}
+    require(len(ids) == sum('id' in node.attrib for node in root.iter()), 'Duplicate SVG id')
     allowed = {'svg', 'title', 'desc', 'defs', 'linearGradient', 'radialGradient', 'stop', 'path', 'rect', 'circle', 'ellipse', 'g', 'text'}
+    attributes = {'id', 'viewBox', 'role', 'aria-labelledby', 'x1', 'y1', 'x2', 'y2', 'offset', 'stop-color', 'stop-opacity', 'cx', 'cy', 'r', 'fill', 'stroke', 'stroke-width', 'opacity', 'stroke-dasharray', 'rx', 'ry', 'x', 'y', 'width', 'height', 'transform', 'd', 'font-family', 'font-size', 'font-weight'}
     for node in root.iter():
-        require(node.tag.rsplit('}', 1)[-1] in allowed, 'Non-static SVG element')
+        require(node.tag.startswith('{http://www.w3.org/2000/svg}') and node.tag.rsplit('}', 1)[-1] in allowed, 'Non-static SVG element')
         for name, value in node.attrib.items():
-            require(not name.startswith('on') and not name.endswith('href') and name not in {'style'}, 'SVG executable/external attribute')
+            require(name in attributes, 'SVG unsupported attribute')
             require(not re.search(r'https?:|data:|javascript:|@font-face', value), 'SVG external resource')
-            for ref in re.findall(r'url\(([^)]+)\)', value):
+            if name in ('fill', 'stroke', 'stop-color'):
+                require(re.fullmatch(r'#[0-9a-fA-F]{3,8}|none|currentColor|url\(#[A-Za-z][\w-]*\)', value), 'Unsupported SVG paint value')
+            for ref in re.findall(r'url\s*\(([^)]+)\)', value, re.I):
                 require(ref.startswith('#') and ref[1:] in ids, 'SVG unresolved paint reference')
     return True
 
@@ -119,14 +135,18 @@ def no_disclosure(text):
 def audit_site(root):
     root = root.resolve()
     info = json.loads((root / 'build-info.json').read_text())
+    require(isinstance(info, dict) and set(info) == {'schema_version', 'publication_state', 'manifest_sha256', 'generator_sha256', 'files'}, 'Invalid export metadata fields')
     require(info['schema_version'] == 'portfolio-export.v1', 'Unknown export')
     require(info['publication_state'] in ('DRAFT', 'RELEASE_APPROVED'), 'Unreviewed publication state')
+    for key in ('manifest_sha256', 'generator_sha256'):
+        require(isinstance(info[key], str) and re.fullmatch('[0-9a-f]{64}', info[key]), 'Invalid export digest: ' + key)
     files = info['files']
-    require(isinstance(files, dict), 'Invalid export inventory')
+    require(isinstance(files, dict) and set(files) == EXPORT_FILES, 'Invalid export inventory')
     engineering = {'build-info.json', 'README.md', '.gitignore', 'scripts/audit.py', '.github/workflows/validate.yml'}
     actual = {str(p.relative_to(root)) for p in root.rglob('*') if p.is_file() and '.git' not in p.relative_to(root).parts and '__pycache__' not in p.relative_to(root).parts}
     require(not actual - set(files) - engineering, 'Unexpected file in publication export')
     for name, expected in files.items():
+        require(isinstance(expected, str) and re.fullmatch('[0-9a-f]{64}', expected), 'Invalid file digest')
         path = (root / name).resolve()
         require(path.is_relative_to(root) and path.is_file(), f'Missing or unsafe export path: {name}')
         require(hashlib.sha256(path.read_bytes()).hexdigest() == expected, f'Export digest drift: {name}')
