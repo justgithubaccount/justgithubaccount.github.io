@@ -19,9 +19,12 @@ EVIDENCE = {
     'app-poly-gitops-fastapi': {'README.md', 'app/api.py', 'app/core/llm_client.py'},
 }
 VOID = {'meta', 'link', 'img', 'br', 'hr', 'input', 'source', 'wbr', 'area', 'base', 'col', 'embed', 'param', 'track'}
-HTML_TAGS = {'html', 'head', 'meta', 'title', 'link', 'script', 'body', 'a', 'header', 'span', 'nav', 'main', 'section', 'div', 'h1', 'h2', 'h3', 'p', 'ul', 'li', 'ol', 'article', 'img', 'details', 'summary', 'code', 'br', 'footer'}
-HTML_ATTRS = {'lang', 'charset', 'name', 'content', 'property', 'rel', 'href', 'type', 'class', 'id', 'src', 'alt', 'width', 'height', 'loading', 'fetchpriority', 'role', 'open'}
-EXPORT_FILES = {'index.html', 'styles.css', 'robots.txt', 'sitemap.xml', 'llms.txt', 'structured-data.json', '.nojekyll', 'assets/favicon.svg', 'assets/orbital.svg', 'assets/art-k8s.svg', 'assets/art-infra.svg', 'assets/art-fastapi.svg'}
+HTML_TAGS = {'html', 'head', 'meta', 'title', 'link', 'script', 'body', 'a', 'header', 'span', 'nav', 'main', 'section', 'div', 'h1', 'h2', 'h3', 'p', 'ul', 'li', 'ol', 'article', 'img', 'details', 'summary', 'code', 'br', 'footer', 'button'}
+HTML_ATTRS = {'lang', 'charset', 'name', 'content', 'property', 'rel', 'href', 'type', 'class', 'id', 'src', 'alt', 'width', 'height', 'loading', 'fetchpriority', 'role', 'open', 'hidden', 'tabindex', 'defer'}
+EXPORT_FILES = {'index.html', 'styles.css', 'robots.txt', 'sitemap.xml', 'llms.txt', 'structured-data.json', '.nojekyll', 'assets/favicon.svg', 'assets/orbital.svg', 'assets/orbital.js', 'assets/art-k8s.svg', 'assets/art-infra.svg', 'assets/art-fastapi.svg'}
+
+# Pin reviewed executable bytes independently of the editable export manifest.
+ORBITAL_JS_SHA256 = 'cd71519c6e75cb50d2f8e9bda3c1a0c61fc75feee74f69e54f31ab0457a585c0'
 
 
 def require(ok, message):
@@ -49,15 +52,22 @@ class Page(HTMLParser):
         self.ids, self.refs, self.stack, self.headings = set(), [], [], []
         self.json_ld, self.in_script, self.script_body = [], False, ''
         self.canonical, self.robots, self.lang, self.viewport = None, None, None, None
+        self.svg_buffer, self.inline_svgs = None, []
+        self.local_scripts, self.script_kind = 0, None
 
     def handle_starttag(self, tag, attrs):
+        if tag == 'svg' or self.svg_buffer is not None:
+            if self.svg_buffer is None:
+                self.svg_buffer = ''
+            self.svg_buffer += self.get_starttag_text()
+            return
         require(len(attrs) == len(dict(attrs)), 'Duplicate HTML attribute')
         attrs = dict(attrs)
         require(tag in HTML_TAGS, f'Unapproved HTML element: {tag}')
         require(all(k in HTML_ATTRS or k.startswith('aria-') for k in attrs), 'Unapproved HTML attribute')
         if 'src' in attrs:
             u = urlsplit(attrs['src'])
-            require(tag == 'img' and not u.scheme and not u.netloc, 'Only local image resources are allowed')
+            require(tag in ('img', 'script') and not u.scheme and not u.netloc, 'Only approved local image/script resources are allowed')
         if tag == 'link':
             require(attrs.get('rel') in ('canonical', 'stylesheet', 'icon'), 'Unapproved link resource')
             if attrs.get('rel') != 'canonical':
@@ -81,31 +91,78 @@ class Page(HTMLParser):
         if tag == 'img':
             require('alt' in attrs and 'width' in attrs and 'height' in attrs, 'Image lacks alternative text or dimensions')
         if tag == 'script':
-            require(attrs == {'type': 'application/ld+json'}, 'Only inert JSON-LD is allowed')
+            if attrs == {'type': 'application/ld+json'}:
+                self.script_kind = 'json'
+            else:
+                require(attrs == {'src': 'assets/orbital.js', 'defer': None}, 'Unapproved executable script')
+                self.local_scripts += 1
+                require(self.local_scripts == 1, 'Duplicate executable script')
+                self.script_kind = 'local'
             self.in_script, self.script_body = True, ''
         for attr in ('href', 'src'):
             if attr in attrs:
                 self.refs.append(attrs[attr])
 
+    def handle_startendtag(self, tag, attrs):
+        if self.svg_buffer is not None or tag == 'svg':
+            require(tag != 'svg', 'Empty inline SVG')
+            self.svg_buffer += self.get_starttag_text()
+        else:
+            self.handle_starttag(tag, attrs)
+            self.handle_endtag(tag)
+
     def handle_endtag(self, tag):
+        if self.svg_buffer is not None:
+            name = {'lineargradient': 'linearGradient', 'radialgradient': 'radialGradient'}.get(tag, tag)
+            self.svg_buffer += f'</{name}>'
+            if tag == 'svg':
+                svg = audit_svg_text(self.svg_buffer)
+                ids = {n.attrib['id'] for n in svg.iter() if 'id' in n.attrib}
+                require(not ids & self.ids, 'Duplicate inline SVG/HTML id')
+                self.ids.update(ids)
+                self.inline_svgs.append(self.svg_buffer)
+                self.svg_buffer = None
+            return
         if tag in VOID:
             return
         require(self.stack and self.stack[-1] == tag, f'Unbalanced HTML element: {tag}')
         self.stack.pop()
         if tag == 'script':
             self.in_script = False
-            self.json_ld.append(json.loads(self.script_body))
+            if self.script_kind == 'json':
+                self.json_ld.append(json.loads(self.script_body))
+            else:
+                require(not self.script_body.strip(), 'Inline executable script body')
+
+    def handle_pi(self, data):
+        raise ValueError('Processing instructions are not allowed')
+
+    def handle_decl(self, decl):
+        require(self.svg_buffer is None and decl.lower() == 'doctype html', 'Unapproved declaration')
+
+    def unknown_decl(self, data):
+        raise ValueError('Unapproved declaration')
 
     def handle_data(self, data):
-        if self.in_script:
+        if self.svg_buffer is not None:
+            self.svg_buffer += data
+        elif self.in_script:
             self.script_body += data
 
 
 def audit_svg(path):
     text = path.read_text(encoding='utf-8')
-    require(len(text.encode()) < 100_000, f'SVG exceeds byte budget: {path.name}')
+    audit_svg_text(text)
+    return True
+
+
+def audit_svg_text(text):
+    require(len(text.encode()) < 100_000, 'SVG exceeds byte budget')
     require(not re.search(r'<\?|<!DOCTYPE|<!ENTITY', text, re.I), 'SVG processing instruction or entity declaration')
-    root = ET.fromstring(text)
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as exc:
+        raise ValueError('Malformed SVG') from exc
     require(root.tag == '{http://www.w3.org/2000/svg}svg' and 'viewBox' in root.attrib, 'Invalid SVG root')
     ns = {'s': 'http://www.w3.org/2000/svg'}
     require(root.find('s:title', ns) is not None and root.find('s:desc', ns) is not None, 'SVG missing title/description')
@@ -122,7 +179,10 @@ def audit_svg(path):
                 require(re.fullmatch(r'#[0-9a-fA-F]{3,8}|none|currentColor|url\(#[A-Za-z][\w-]*\)', value), 'Unsupported SVG paint value')
             for ref in re.findall(r'url\s*\(([^)]+)\)', value, re.I):
                 require(ref.startswith('#') and ref[1:] in ids, 'SVG unresolved paint reference')
-    return True
+    for node in root.iter():
+        if 'aria-labelledby' in node.attrib:
+            require(all(ref in ids for ref in node.attrib['aria-labelledby'].split()), 'SVG unresolved label reference')
+    return root
 
 
 def no_disclosure(text):
@@ -153,7 +213,9 @@ def audit_site(root):
         no_disclosure(path.read_text(encoding='utf-8'))
     page = Page()
     page.feed((root / 'index.html').read_text())
-    require(not page.stack, 'Unclosed HTML elements')
+    require(not page.stack and page.svg_buffer is None, 'Unclosed HTML elements')
+    require(len(page.inline_svgs) == 1 and page.local_scripts == 1, 'Missing orbital enhancement/fallback')
+    require(hashlib.sha256((root / 'assets/orbital.js').read_bytes()).hexdigest() == ORBITAL_JS_SHA256, 'Unreviewed orbital script bytes')
     require(page.lang == 'en' and page.viewport == 'width=device-width, initial-scale=1', 'Language/viewport missing')
     require(page.headings.count('h1') == 1 and 'main' in page.ids, 'Missing main heading/landmark')
     require(page.canonical == SITE, 'Wrong canonical')

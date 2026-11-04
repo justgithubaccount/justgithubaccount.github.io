@@ -14,7 +14,8 @@
 body{background:radial-gradient(ellipse 58rem 38rem at 76% 24rem,rgba(109,86,201,.14),transparent 72%),radial-gradient(ellipse 30rem 28rem at 11% 64rem,rgba(68,151,186,.055),transparent 78%),var(--bg)}
 ::selection{background:#766aca;color:#fff}
 .header{border-bottom-color:#424766}
-.identity-orbit{box-shadow:0 0 22px rgba(143,130,252,.12)}
+.identity-orbit{box-shadow:0 0 22px rgba(143,130,252,.12);animation:identity-orbit-spin 16s linear infinite}
+@keyframes identity-orbit-spin{from{transform:rotate(-35deg)}to{transform:rotate(325deg)}}
 nav a{position:relative;transition:color .2s ease}
 nav a::after{content:"";position:absolute;left:0;right:0;bottom:5px;height:1px;background:var(--cyan);transform:scaleX(0);transform-origin:left;transition:transform .2s ease}
 nav a:hover::after,nav a:focus-visible::after{transform:scaleX(1)}
@@ -43,3 +44,26 @@ details[open] summary{color:var(--accent)}
 @media(max-width:1100px){.hero{min-height:620px}.project{gap:34px}}
 @media(max-width:720px){.hero{min-height:0;padding-block:44px 42px;gap:10px}.hero-intro{line-height:1.7}.hero-visual::before{inset:10%}.project{gap:26px;padding-block:36px}.project-art{border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.11)}.focus-list li{border-top-color:#626784}nav a::after{bottom:7px}}
 @media(prefers-reduced-motion:reduce){nav a,.button,.project-art,.project-art img,nav a::after,.text-link{transition:none!important}.project:hover .project-art,.button:hover,.project:hover .project-art img{transform:none!important}}
+/* The static SVG is complete before this optional control is enabled. */
+.orbital-art{position:relative;aspect-ratio:600/640}
+.orbital-art>svg{display:block;width:100%;height:100%;overflow:hidden;filter:drop-shadow(0 15px 44px rgba(98,95,190,.12))}
+.helix-control{position:absolute;left:36%;top:12%;width:28%;height:72%;border:1px solid transparent;border-radius:48%;touch-action:pan-y pinch-zoom;cursor:grab}
+.helix-control:hover{border-color:rgba(150,219,245,.4);background:rgba(150,219,245,.025)}
+.helix-control:focus-visible{outline:3px solid var(--cyan);outline-offset:4px;border-color:transparent}
+.is-dragging .helix-control{cursor:grabbing}
+.orbital-art:has(.helix-control:hover) #orbital-moving-helix,.orbital-art:has(.helix-control:focus-visible) #orbital-moving-helix{filter:drop-shadow(0 0 4px rgba(150,219,245,.8))}
+.hero-visual .visual-caption{margin-top:8px}
+.orbital-controls{text-align:center;margin-top:14px;font-size:12px}
+.orbital-controls p{font-size:12px}
+.orbital-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
+.orbital-buttons button{font:inherit;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-width:44px;min-height:44px;cursor:pointer}
+.orbital-buttons button:hover,.orbital-buttons button[aria-pressed=true]{border-color:var(--cyan);color:var(--cyan)}
+.orbital-buttons button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+.orbital-buttons button:disabled{opacity:.45;cursor:default}
+#orbital-play{min-width:64px}
+.is-playing #orbital-play{border-color:var(--cyan);color:var(--cyan)}
+.is-playing #orbital-moving-helix{filter:drop-shadow(0 0 3px rgba(150,219,245,.45))}
+[hidden]{display:none!important}
+@media(max-width:720px){.orbital-art{max-height:410px;max-width:384.375px;margin-inline:auto}.orbital-controls{margin-top:14px}}
+@media(prefers-reduced-motion:reduce){.identity-orbit{animation:none}.helix-control,.orbital-controls,#orbital-moving-helix{display:none!important}#orbital-static-helix{visibility:visible}}
+@media(forced-colors:active){.helix-control:focus-visible,.orbital-buttons button:focus-visible{outline-color:Highlight}.orbital-buttons button{border-color:ButtonText}}
